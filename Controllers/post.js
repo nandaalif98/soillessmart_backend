@@ -1,4 +1,6 @@
 const { query } = require("../database/db");
+const fs = require('fs');
+const path = require('path');
 
 const getPostbyCommunity = async (req, res) => {
   const communityId = req.params.communityId;
@@ -16,9 +18,13 @@ const getPostbyCommunity = async (req, res) => {
 
 const addPost = async (req, res) => {
   const { communityId } = req.params;
-  const { title, content } = req.body;
+  const { title } = req.body;
+  const content = req.file ? req.file.filename : null;
 
   if (!communityId) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(400).json({ error: 'communityId is required' });
   }
 
@@ -30,21 +36,40 @@ const addPost = async (req, res) => {
 
     return res.status(200).json({ msg: "post DItambahkan" });
   } catch (error) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(500).json({ msg: "Terjadi kesalahan pada server" });
   }
 };
 
 const updatePost = async (req, res) => {
   const { id } = req.params;
-  const { title, content } = req.body;
+  const { title } = req.body;
   try {
+    const oldPost = await query(`SELECT content FROM posts WHERE id = ?`, [id]);
+    const oldPhotoName = oldPost[0]?.photo;
+
+    const newContent = req.file ? req.file.filename : oldPhotoName;
+
     await query(`UPDATE posts SET title = ?, content = ? WHERE id = ?`, [
       title,
-      content,
+      newContent,
       id,
     ]);
+
+    if (req.file && oldPhotoName) {
+      const oldPhotoPath = path.join(__dirname, '../uploads/posts', oldPhotoName);
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+
     return res.status(200).json({ msg: "Post berhasil diedit" });
   } catch (error) {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     console.log(error);
     return res.status(500).json({ msg: "Terjadi kesalahan pada server" });
   }
@@ -53,7 +78,19 @@ const updatePost = async (req, res) => {
 const deletePost = async (req, res) => {
   const { id } = req.params;
   try {
+
+    const post = await query(`SELECT photo FROM posts WHERE id = ?`, [id]);
+    const photoName = post[0]?.photo;
+
     await query(`DELETE FROM posts WHERE id = ?`, [id]);
+
+    if (photoName) {
+      const photoPath = path.join(__dirname, '../uploads/posts', photoName);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+      }
+    }
+
     return res.status(200).json({ msg: "Post berhasil dihapus" });
   } catch (error) {
     console.log(error);

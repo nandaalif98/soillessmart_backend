@@ -6,8 +6,7 @@ const authMiddleware = require('../../Middlewares/auth');
 const authRoutes = express.Router();
 
 const jwtSecret = process.env.JWT_SECRET || 'e0dcc9de-b11c-4e91-81dc-7c665262cdc3';
-
-userAuthController.JWT_SECRET = jwtSecret;
+userAuthController.setJWTSecret(jwtSecret);
 
 authRoutes.post('/register', userAuthController.register);
 authRoutes.post('/login', userAuthController.login);

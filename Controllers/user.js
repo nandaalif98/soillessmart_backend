@@ -2,6 +2,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { query } = require("../database/db");
 const AppError = require("../utils/appError");
+require ('dotenv').config();
+const JWT_SECRET = process.env.JWT_SECRET || 'e0dcc9de-b11c-4e91-81dc-7c665262cdc3';
 
 class UserAuthController {
   constructor(secret) {
@@ -12,6 +14,10 @@ class UserAuthController {
     if (!this.JWT_SECRET) {
       throw new Error("JWT_SECRET is not defined");
     }
+  }
+
+  setJWTSecret(secret) {
+    this.JWT_SECRET = secret;
   }
 
   validateInput(req, res, next) {
@@ -105,7 +111,7 @@ class UserAuthController {
 
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
-        this.JWT_SECRET || "e0dcc9de-b11c-4e91-81dc-7c665262cdc3",
+        JWT_SECRET,
         { expiresIn: "24h" }
       );
 
